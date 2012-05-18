@@ -26,7 +26,7 @@ int main(){
 	int queue[10], fdl[2], fdr[2] ;
 	char prompt[] = "Virtual Shell > ";
     //REdirection 'flags'
-    int fdin, fdout, redirout;
+    int fdin, fdout, redirout, redirin;
     char *fnin, *fnout;
     
 	//Basic logic: always present the user with a prompt, until they exit the program.
@@ -46,7 +46,7 @@ int main(){
 				j++;
 			}
             //Find redirection requests
-            if (strcmp(argpath[i], ">")==0 | strcmp(argpath[i],">>")==0) {
+            else if (strcmp(argpath[i], ">")==0 | strcmp(argpath[i],">>")==0) {
                 //output result to file
                 //fetch filename from argpath
                 fnout = calloc(1,sizeof(k-i));
@@ -59,15 +59,21 @@ int main(){
                 }
                 argpath[i] = NULL;
             }
-           // if (strcmp(argpath[i],"<")==0) {
-               // fnin = calloc(1,sizeof(k-i));
-                //strcpy(fnin,argpath[i+1]);
-                //redirout = 3;
-               // argpath[i] = NULL;
-            //}
+            else if (strcmp(argpath[i], "<") == 0) {
+                fnin = calloc(1,sizeof(k-i));
+                argpath[i] = NULL;
+                strcpy(fnin,argpath[queue[j-1]]);
+                redirin = 1;
+                queue[j-1] = i+1;
+            }
         }
         processid = fork();
         if (processid == 0){
+            if (redirin == 1) {
+                printf("Reading input from file...\n Filename: '%s'\n", fnin);
+                fdin = open(fnin, O_RDONLY, 0777);
+                fdin = dup2(fdin, STDIN_FILENO);
+            }
             if (redirout == 1 | redirout == 2) {
                 printf("Redirecting output to file...\n Filename: '%s'\n",fnout);
                 if (redirout == 1) {
@@ -86,6 +92,7 @@ int main(){
         else{
             waitpid(processid, &status, 0);
             close(fdout);
+            close(fdin);
             printf("%s", prompt);
         }
     }
