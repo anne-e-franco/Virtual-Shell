@@ -29,7 +29,7 @@ int main(){
 		k = makeargv(buffer, " \n", &argpath);
 		j = 1;
 		queue[0] = 0;
-        printf("%i vs %i\n",(int)(sizeof(argpath)/sizeof(char)),k);
+        printf("%i\n",k);
 
 		for (i=0;i<k;i++){
             //Find the pipes, replace them with null characters (to stop execvp).
@@ -38,9 +38,26 @@ int main(){
 				queue[j] = i+1;
 				j++;
 			}
-           
+           /*
             //Find redirection requests
-            
+            if (strcmp(argpath[i], ">")==0) {
+                //output result to file
+                //fetch filename from argpath
+              //  printf ("%i", i);
+                argpath[i] = NULL;
+                fnout = calloc(1,sizeof(k-i));
+                strcpy(fnout,argpath[i+1]);
+                printf("%s\n",fnout);
+                fdout = open(fnout, 0777);
+            }
+           
+            if (strcmp(argpath[i], ">>")==0) {
+                //append file with result
+            }
+            if (strcmp(argpath[i],"<")==0){
+                //get info from file 
+            }
+            */
             printf("argpath[%i]: %s\n",i,argpath[i]);
             
 		}
@@ -58,11 +75,7 @@ int main(){
 //CHILD PROCESS - Shell's Child
 		if(processid == 0){
 			printf("Right Side\n");
-            //if (j == 1) {
-              //  execvp(argpath[j-1],&argpath[j-1]);
-            //}
-            else{
-                j--;
+            i = j-1;
                 pipe(fdl);
                 //Make a child.
                 processid = fork();
@@ -70,47 +83,47 @@ int main(){
                     //RM's World
                     //close one end of pipe
                     close(fdl[1]);
-                    //dup2
+                    //dup2: get input from standard in.
                     fdl[0] = dup2(fdl[0],STDIN_FILENO);
-                    if (((execvp(argpath[queue[j]],&argpath[queue[j]]))!=0)) write(1,"Right fail\n",12);
+                    if (((execvp(argpath[queue[i]],&argpath[queue[i]]))!=0)) write(1,"Right fail\n",12);
                     //execvp(argpath[queue[2]],argpath);
                     
                 }
     //2nd CHILD
                 if(processid == 0){
                     printf("Middle Children\n");
-                    //connect ends of pipe
-                    fdr[1] = fdl[1];
-                    fdr[1] = dup2(fdr[1],STDOUT_FILENO);
-                    fdr[0] = fdl[0];
-                    close(fdr[0]);
+                    i--;
+                    //connect ends of 
+                    fdr[1] = fdl[1]; //connect to right-hand pipe.
+                    fdr[1] = dup2(fdr[1],STDOUT_FILENO); //Intercept stdout, reroute into pipe
+                    fdr[0] = fdl[0]; //connect to right-hand pipe (for symmetry)
+                    close(fdr[0]); //not reading from pipe.
                     
-                    //Pipe!
-                    pipe(fdl);
-                    //Fork!
-                    processid = fork();
-                    
-                    if(processid > 0){ 
-                        while (j>2) {
-                            //Use LM info, do ops on, pass to R:
-                            j--;
+                    while (i > 0) {
+                        //Pipe!
+                        pipe(fdl);
+                        //Fork!
+                        processid = fork(); //hatch youngest child.
+                        
+                        if(processid > 0){ 
                             //close one end of pipe
-                            close(fdl[1]);
-                            fdl[0] = dup2(fdl[0],STDIN_FILENO);
+                            close(fdl[1]); //no writing
+                            fdl[0] = dup2(fdl[0],STDIN_FILENO); //read from sdtin
                             //write (1, "Ready to Exec in M\n",19);
-                            if ((execvp(argpath[queue[j]], &argpath[queue[j]])!=0)) write(1,"Middle fail\n",13);
-                        }                        
+                            if ((execvp(argpath[queue[i]], &argpath[queue[i]])!=0)) write(1,"Middle fail\n",13);
+                        } 
+                        i--;
                     }
+                      
     //Youngest Child
                     if(processid == 0){
-                        //printf("Left Side\n");
-                        //fdr[0] = fdl[0];
+                        printf("Left Side\n");
+                        fdr[0] = fdl[0];
                         fdr[1] = fdl[1]; close(fdr[0]);
                         fdr[1] = dup2(fdr[1],STDOUT_FILENO);
-                        if ((execvp(argpath[queue[0]], &argpath[queue[0]])!=0)) write(1,"Left fail\n",10);
+                        if ((execvp(argpath[queue[i]], &argpath[queue[i]])!=0)) write(1,"Left fail\n",10);
                     }//exit LM
                 }//exit M
-            }
         }
 //PARENT PROCESS - Shell Level
 		waitpid(processid, &status, 0);
