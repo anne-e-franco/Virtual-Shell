@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <fcntl.h>
 #include <sys/wait.h>
 #include <unistd.h>
 #include "ourhdr.h"
@@ -18,53 +19,47 @@ int main(){
 	int queue[10], fdl[2], fdr[2] ;
 	char prompt[] = "Virtual Shell > ";
     //REdirection 'flags'
-    int fdin, fdout;
+    int fdin, fdout, redirout, redirin;
     char *fnin, *fnout;
     
 	//Basic logic: always present the user with a prompt, until they exit the program.
 	printf("%s", prompt); //once at the beginning (before the loop is entered)
-	while (strcmp(fgets(buffer, 120, stdin), "exit\n")!=0){
-        //printf("'%s'",buffer);
-	//Detect pipes
-		k = makeargv(buffer, " \n", &argpath);
-		j = 1;
+    
+    while (strcmp(fgets(buffer, 120, stdin), "exit\n")!=0){
+        fnout = calloc(1,120);
+        redirout = 0;
+        k = makeargv(buffer, " \n", &argpath);
+        j = 1;
 		queue[0] = 0;
-        printf("%i\n",k);
-
-		for (i=0;i<k;i++){
+        for (i=0;i<k;i++){
             //Find the pipes, replace them with null characters (to stop execvp).
 			if (strcmp(argpath[i], "|")==0){
 				argpath[i] = NULL;
 				queue[j] = i+1;
 				j++;
 			}
-           /*
             //Find redirection requests
-            if (strcmp(argpath[i], ">")==0) {
+            else if (strcmp(argpath[i], ">")==0 | strcmp(argpath[i],">>")==0) {
                 //output result to file
                 //fetch filename from argpath
-              //  printf ("%i", i);
-                argpath[i] = NULL;
                 fnout = calloc(1,sizeof(k-i));
                 strcpy(fnout,argpath[i+1]);
-                printf("%s\n",fnout);
-                fdout = open(fnout, 0777);
+                if (strcmp(argpath[i],">")==0) {
+                    redirout = 1;
+                }
+                else{
+                    redirout = 2;
+                }
+                argpath[i] = NULL;
             }
-           
-            if (strcmp(argpath[i], ">>")==0) {
-                //append file with result
+            else if (strcmp(argpath[i], "<") == 0) {
+                fnin = calloc(1,sizeof(k-i));
+                argpath[i] = NULL;
+                strcpy(fnin,argpath[queue[j-1]]);
+                redirin = 1;
+                queue[j-1] = i+1;
             }
-            if (strcmp(argpath[i],"<")==0){
-                //get info from file 
-            }
-            */
-            printf("argpath[%i]: %s\n",i,argpath[i]);
-            
-		}
-	
-		for(i=0;i<j;i++){
-		printf("Command [%i]: %s\n",i, argpath[queue[i]]);
-		}
+        }
 		
 		processid = fork(); //fork the current process (2 identical processes exist now). Let's use them.
 //FORK	
