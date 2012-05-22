@@ -80,6 +80,12 @@ int main(){
                     close(fdl[1]);
                     //dup2: get input from standard in.
                     fdl[0] = dup2(fdl[0],STDIN_FILENO);
+                    if (redirin == 1 & i == 0) {
+                        printf("Reading input from file...\n Filename: '%s'\n", fnin);
+                        fdin = open(fnin, O_RDONLY, 0777);
+                        fdin = dup2(fdin, STDIN_FILENO);
+                    }
+
                     if (redirout == 1 | redirout ==2) {
                         printf("Redirecting output to file...\n Filename: '%s'\n",fnout);
                         if (redirout == 1) {
@@ -128,6 +134,11 @@ int main(){
                         fdr[0] = fdl[0];
                         fdr[1] = fdl[1]; close(fdr[0]);
                         fdr[1] = dup2(fdr[1],STDOUT_FILENO);
+                        if (redirin == 1) {
+                            printf("Reading input from file...\n Filename: '%s'\n", fnin);
+                            fdin = open(fnin, O_RDONLY, 0777);
+                            fdin = dup2(fdin, STDIN_FILENO);
+                        }
                         if ((execvp(argpath[queue[i]], &argpath[queue[i]])!=0)) write(1,"Left fail\n",10);
                     }//exit LM
                 }//exit M
