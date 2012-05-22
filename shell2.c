@@ -69,7 +69,7 @@ int main(){
 		}
 //CHILD PROCESS - Shell's Child
 		if(processid == 0){
-			printf("Right Side\n");
+			//printf("Right Side\n");
             i = j-1;
                 pipe(fdl);
                 //Make a child.
@@ -80,13 +80,25 @@ int main(){
                     close(fdl[1]);
                     //dup2: get input from standard in.
                     fdl[0] = dup2(fdl[0],STDIN_FILENO);
+                    if (redirout == 1 | redirout ==2) {
+                        printf("Redirecting output to file...\n Filename: '%s'\n",fnout);
+                        if (redirout == 1) {
+                            printf("Mode: Create / Truncate\n");
+                            fdout = open(fnout,O_RDWR | O_CREAT | O_TRUNC, 0777);
+                        }
+                        else{
+                            printf("Mode: Create / Append\n");
+                            fdout = open(fnout,O_RDWR | O_CREAT | O_APPEND, 0777);
+                        }
+                        fdout = dup2(fdout, STDOUT_FILENO);
+                    }
                     if (((execvp(argpath[queue[i]],&argpath[queue[i]]))!=0)) write(1,"Right fail\n",12);
                     //execvp(argpath[queue[2]],argpath);
                     
                 }
     //2nd CHILD
                 if(processid == 0){
-                    printf("Middle Children\n");
+                   // printf("Middle Children\n");
                     i--;
                     //connect ends of 
                     fdr[1] = fdl[1]; //connect to right-hand pipe.
@@ -112,7 +124,7 @@ int main(){
                       
     //Youngest Child
                     if(processid == 0){
-                        printf("Left Side\n");
+                       // printf("Left Side\n");
                         fdr[0] = fdl[0];
                         fdr[1] = fdl[1]; close(fdr[0]);
                         fdr[1] = dup2(fdr[1],STDOUT_FILENO);
