@@ -19,7 +19,7 @@ int main(){
 	int queue[10], fdl[2], fdr[2] ;
 	char prompt[] = "Virtual Shell > ";
     //REdirection 'flags'
-    int fdin, fdout, redirout, redirin;
+    int fdin, fdout, redirout, redirin, background;
     char *fnin, *fnout;
     
 	//Basic logic: always present the user with a prompt, until they exit the program.
@@ -28,7 +28,7 @@ int main(){
     while (strcmp(fgets(buffer, 120, stdin), "exit\n")!=0){
         fnout = calloc(1,120);
         redirout = 0;
-        k = makeargv(buffer, " \n", &argpath);
+        k = makeargv(buffer, " \n", &argpath); //makeargv returns the number of tokens.
         j = 1;
 		queue[0] = 0;
         for (i=0;i<k;i++){
@@ -61,6 +61,13 @@ int main(){
                 redirin = 1; //set flag(s)
                 queue[j-1] = i+1; //correct queue entry (replace filename with command)
             }
+        }
+        if (strcmp(argpath[k-1], "&") == 0) {
+            background = 1;
+            argpath[k-1] = NULL;
+        }
+        else{
+            background = 0;
         }
 		
 		processid = fork(); //fork the current process (2 identical processes exist now). Let's use them.
@@ -136,9 +143,11 @@ int main(){
                         if ((execvp(argpath[queue[i]], &argpath[queue[i]])!=0)) write(1,"Left fail\n",10);
                     }//exit LM
                 }//exit M
-        }
+        }//exit RM
 //PARENT PROCESS - Shell Level
-		waitpid(processid, &status, 0);
+		if (background == 0) {
+            waitpid(processid, &status, 0);
+        }
         close(fdin);
         close(fdout);
 		printf("%s",prompt);
